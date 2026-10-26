@@ -1,0 +1,76 @@
+#include <DHT.h>
+
+#define DHTPIN D2
+#define DHTTYPE DHT11
+
+const int fanPin = D1;
+const int buzzerPin = D5;
+
+const float fanOnTemp = 35.0;
+const float fanOffTemp = 34.0;
+
+bool fanState = false;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(fanPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  digitalWrite(fanPin, LOW);
+  digitalWrite(buzzerPin, LOW);
+
+  dht.begin();
+  delay(2000);
+
+  Serial.println("Automatic Fan Controller Started");
+}
+
+void loop() {
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println("DHT11 sensor error. Check connections.");
+    digitalWrite(buzzerPin, LOW);
+    delay(2000);
+    return;
+  }
+
+  bool previousFanState = fanState;
+
+  if (temperature >= fanOnTemp) {
+    fanState = true;
+  }
+  else if (temperature <= fanOffTemp) {
+    fanState = false;
+  }
+
+  digitalWrite(fanPin, fanState ? HIGH : LOW);
+
+  if (fanState != previousFanState) {
+    if (fanState) {
+      Serial.println("ALERT: FAN TURNED ON");
+      digitalWrite(buzzerPin, HIGH);
+      delay(500);
+      digitalWrite(buzzerPin, LOW);
+    }
+    else {
+      Serial.println("ALERT: FAN TURNED OFF");
+      digitalWrite(buzzerPin, HIGH);
+      delay(150);
+      digitalWrite(buzzerPin, LOW);
+    }
+  }
+
+  Serial.print("Temperature: ");
+  Serial.print(temperature, 1);
+  Serial.print(" C | Humidity: ");
+  Serial.print(humidity, 1);
+  Serial.print(" % | Fan: ");
+  Serial.println(fanState ? "ON" : "OFF");
+
+  delay(2000);
+}
